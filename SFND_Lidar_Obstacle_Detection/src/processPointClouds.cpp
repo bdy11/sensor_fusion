@@ -26,40 +26,27 @@ typename pcl::PointCloud<PointT>::Ptr ProcessPointClouds<PointT>::FilterCloud(ty
 
     // Time segmentation process
     auto startTime = std::chrono::steady_clock::now();
-
-    // the function to do voxel grid point reduction and region based filtering
-    pcl::VoxelGrid<PointT> vg;
-    typename pcl::PointCloud<PointT>::Ptr cloudFiltered (new pcl::PointCloud<PointT>);
-
-    vg.setInputCloud(cloud);
-    vg.setLeafSize(filterRes, filterRes, filterRes);
-    vg.filter(*cloudFiltered);
-    
+    typename pcl::PointCloud<PointT>::Ptr voxel_cloud (new pcl::PointCloud<PointT>);
     typename pcl::PointCloud<PointT>::Ptr cloudRegion (new pcl::PointCloud<PointT>);
 
-    pcl::CropBox<PointT> region(true);
-    region.setMin(minPoint);
-    region.setMax(maxPoint);
-    region.setInputCloud(cloudFiltered);
-    region.filter(*cloudRegion);
+    // voxel grid point reduction 
+    pcl::VoxelGrid<PointT> vg;
+    vg.setInputCloud(cloud);
+    vg.setLeafSize(filterRes, filterRes, filterRes);
+    vg.filter(*voxel_cloud);
+    
+    // crop the interest region
+    pcl::CropBox<PointT> cropbox_filter(true);
+    cropbox_filter.setMin(minPoint);
+    cropbox_filter.setMax(maxPoint);
+    cropbox_filter.setInputCloud(voxel_cloud);
+    cropbox_filter.filter(*cloudRegion);
 
-    std::vector<int> indices;
-    pcl::CropBox<PointT> roof;
-    roof.setMin(Eigen::Vector4f(-1.5, -1.7, -1, 1));
-    roof.setMax(Eigen::Vector4f(2.6, 1.7, -.4, 1));
-    roof.setInputCloud(cloudRegion);
-    roof.filter(indices);
-
-    pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
-    for(int point : indices)
-    inliers->indices.push_back(point);
-
-    pcl::ExtractIndices<PointT> extract;
-    extract.setInputCloud(cloudRegion);
-    extract.setIndices(inliers);
-    extract.setNegative(true);
-    extract.filter(*cloudRegion);
-
+    cropbox_filter.setMin(Eigen::Vector4f(-1.5, -1.7, -1, 1));
+    cropbox_filter.setMax(Eigen::Vector4f(2.6, 1.7, -.4, 1));
+    cropbox_filter.setInputCloud(cloudRegion);
+    cropbox_filter.setNegative(true);
+    cropbox_filter.filter(*cloudRegion);
 
     auto endTime = std::chrono::steady_clock::now();
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
@@ -308,7 +295,7 @@ std::vector<typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::C
         tree->insert(p, id++);
     }
 
-  	std::vector<pcl::PointIndices> clusterIndices = euclideanCluster(cloud, tree, 0.4);
+  	std::vector<pcl::PointIndices> clusterIndices = euclideanCluster(cloud, tree, clusterTolerance);
 
     for(pcl::PointIndices getIndices: clusterIndices)
     {

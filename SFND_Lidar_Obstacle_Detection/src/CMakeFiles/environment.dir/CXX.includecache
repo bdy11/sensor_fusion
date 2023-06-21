@@ -64,10 +64,6 @@ quiz/cluster/kdtree.h
 Eigen/Geometry
 -
 
-/home/gest/Dev/sensor_fusion/SFND_Lidar_Obstacle_Detection/src/render/render.cpp
-render.h
-/home/gest/Dev/sensor_fusion/SFND_Lidar_Obstacle_Detection/src/render/render.h
-
 /home/gest/Dev/sensor_fusion/SFND_Lidar_Obstacle_Detection/src/render/render.h
 pcl/visualization/pcl_visualizer.h
 -
